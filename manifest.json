@@ -1,0 +1,36 @@
+{
+  "name": "CubeBox Campaign Assets",
+  "campaign": "WSM Umrah I'tikaf Ramadhan 1448/2027",
+  "batch_date": "2026-09-25",
+  "integrity": "sha256",
+  "assets": [
+    {
+      "path": "2026-09-25/umrohfriendly/feed-01.jpg",
+      "bytes": 191690,
+      "width": 1080,
+      "height": 1350,
+      "sha256": "3dd857e2a51ff49764093a4eb5fc77a51162f44fb43c8675e97798989a33afcf"
+    },
+    {
+      "path": "2026-09-25/infoumrohhemat/story-01.jpg",
+      "bytes": 257922,
+      "width": 1080,
+      "height": 1919,
+      "sha256": "3e51da1386e7122af30c2fc35b90305a8e4bb877b2d5a6b1ea298fe10a867571"
+    },
+    {
+      "path": "2026-09-25/infoumrohhemat/feed-01.jpg",
+      "bytes": 262632,
+      "width": 1080,
+      "height": 1350,
+      "sha256": "b196ec5963fe40e12493d79c6020de8799ce8a533d7c2c0fed9570dfbd540ef0"
+    },
+    {
+      "path": "2026-09-25/muslimhalaltrip/story-01.jpg",
+      "bytes": 336226,
+      "width": 1080,
+      "height": 1919,
+      "sha256": "3faa79a82f1d83fd53bb0d53d237b9df9def0b1b99b0836ce4ab1c4879561883"
+    }
+  ]
+}
