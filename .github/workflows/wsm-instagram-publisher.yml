@@ -1,6 +1,11 @@
 name: WSM Instagram Publisher
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/wsm-instagram-publisher.yml"
   schedule:
     # GitHub cron uses UTC. Asia/Jakarta = UTC+7.
     - cron: "45 4 * * *"   # 11:45 WIB — @umrohfriendly feed
@@ -45,7 +50,12 @@ jobs:
 
           if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
             SLOT="$INPUT_SLOT"
+            DRY_RUN=false
+          elif [[ "$EVENT_NAME" == "push" ]]; then
+            SLOT="11:45"
+            DRY_RUN=true
           else
+            DRY_RUN=false
             case "$EVENT_SCHEDULE" in
               "45 4 * * *") SLOT="11:45" ;;
               "30 5 * * *") SLOT="12:30" ;;
@@ -59,7 +69,8 @@ jobs:
           fi
 
           echo "slot=$SLOT" >> "$GITHUB_OUTPUT"
-          echo "Resolved Asia/Jakarta slot: $SLOT"
+          echo "dry_run=$DRY_RUN" >> "$GITHUB_OUTPUT"
+          echo "Resolved Asia/Jakarta slot: $SLOT (dry_run=$DRY_RUN)"
 
       - name: Mint GitHub OIDC token
         id: oidc
@@ -85,10 +96,11 @@ jobs:
         env:
           OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
           SLOT: ${{ steps.slot.outputs.slot }}
+          DRY_RUN: ${{ steps.slot.outputs.dry_run }}
         run: |
           set -euo pipefail
 
-          BODY="$(jq -nc --arg slot "$SLOT" '{slot:$slot}')"
+          BODY="$(jq -nc --arg slot "$SLOT" --argjson dry_run "$DRY_RUN" '{slot:$slot,dry_run:$dry_run}')"
 
           curl --fail-with-body --silent --show-error \
             --max-time 150 \
