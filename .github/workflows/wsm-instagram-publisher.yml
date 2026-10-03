@@ -1,0 +1,101 @@
+name: WSM Instagram Publisher
+
+on:
+  schedule:
+    # GitHub cron uses UTC. Asia/Jakarta = UTC+7.
+    - cron: "45 4 * * *"   # 11:45 WIB — @umrohfriendly feed
+    - cron: "30 5 * * *"   # 12:30 WIB — @infoumrohhemat Story
+    - cron: "30 12 * * *"  # 19:30 WIB — @infoumrohhemat feed
+    - cron: "45 13 * * *"  # 20:45 WIB — @muslimhalaltrip Story
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: "Slot to publish/retry (Asia/Jakarta)"
+        required: true
+        type: choice
+        options:
+          - "11:45"
+          - "12:30"
+          - "19:30"
+          - "20:45"
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: wsm-instagram-publisher
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Resolve publisher slot
+        id: slot
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_SCHEDULE: ${{ github.event.schedule }}
+          INPUT_SLOT: ${{ inputs.slot }}
+        run: |
+          set -euo pipefail
+
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            SLOT="$INPUT_SLOT"
+          else
+            case "$EVENT_SCHEDULE" in
+              "45 4 * * *") SLOT="11:45" ;;
+              "30 5 * * *") SLOT="12:30" ;;
+              "30 12 * * *") SLOT="19:30" ;;
+              "45 13 * * *") SLOT="20:45" ;;
+              *)
+                echo "Unknown schedule: $EVENT_SCHEDULE" >&2
+                exit 1
+                ;;
+            esac
+          fi
+
+          echo "slot=$SLOT" >> "$GITHUB_OUTPUT"
+          echo "Resolved Asia/Jakarta slot: $SLOT"
+
+      - name: Mint GitHub OIDC token
+        id: oidc
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          RESPONSE="$(curl --fail-with-body --silent --show-error \
+            -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=wsm-campaign-publisher")"
+
+          TOKEN="$(jq -r '.value' <<<"$RESPONSE")"
+          if [[ -z "$TOKEN" || "$TOKEN" == "null" ]]; then
+            echo "GitHub did not return an OIDC token." >&2
+            exit 1
+          fi
+
+          echo "::add-mask::$TOKEN"
+          echo "token=$TOKEN" >> "$GITHUB_OUTPUT"
+
+      - name: Trigger fail-closed publisher
+        shell: bash
+        env:
+          OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
+          SLOT: ${{ steps.slot.outputs.slot }}
+        run: |
+          set -euo pipefail
+
+          BODY="$(jq -nc --arg slot "$SLOT" '{slot:$slot}')"
+
+          curl --fail-with-body --silent --show-error \
+            --max-time 150 \
+            -X POST \
+            -H "Authorization: Bearer $OIDC_TOKEN" \
+            -H "Content-Type: application/json" \
+            --data "$BODY" \
+            "https://cubebox-campaign-assets.floot.app/_api/publisher-run"
+
+          echo
