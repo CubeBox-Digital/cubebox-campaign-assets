@@ -1,5 +1,6 @@
 name: WSM Instagram Publisher
 
+# OIDC self-test marker: 2026-10-03
 on:
   push:
     branches:
