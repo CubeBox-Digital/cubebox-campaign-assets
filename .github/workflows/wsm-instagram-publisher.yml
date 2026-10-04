@@ -12,7 +12,8 @@ on:
     - cron: "45 4 * * *"   # 11:45 WIB — @umrohfriendly feed
     - cron: "30 5 * * *"   # 12:30 WIB — @infoumrohhemat Story
     - cron: "30 12 * * *"  # 19:30 WIB — @infoumrohhemat feed
-    - cron: "45 13 * * *"  # 20:45 WIB — @muslimhalaltrip Story
+    - cron: "15 13 * * 0"  # Sunday 20:15 WIB — @muslimhalaltrip feed
+    - cron: "45 13 * * *"   # 20:45 WIB — @muslimhalaltrip feed/Story by weekday
   workflow_dispatch:
     inputs:
       slot:
@@ -23,6 +24,7 @@ on:
           - "11:45"
           - "12:30"
           - "19:30"
+          - "20:15"
           - "20:45"
 
 permissions:
@@ -39,39 +41,18 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - name: Resolve publisher slot
-        id: slot
+      - name: Check out scheduler contract
+        uses: actions/checkout@v4
+
+      - name: Resolve exact publisher target
+        id: target
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
           EVENT_SCHEDULE: ${{ github.event.schedule }}
           INPUT_SLOT: ${{ inputs.slot }}
         run: |
-          set -euo pipefail
-
-          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
-            SLOT="$INPUT_SLOT"
-            DRY_RUN=false
-          elif [[ "$EVENT_NAME" == "push" ]]; then
-            SLOT="11:45"
-            DRY_RUN=true
-          else
-            DRY_RUN=false
-            case "$EVENT_SCHEDULE" in
-              "45 4 * * *") SLOT="11:45" ;;
-              "30 5 * * *") SLOT="12:30" ;;
-              "30 12 * * *") SLOT="19:30" ;;
-              "45 13 * * *") SLOT="20:45" ;;
-              *)
-                echo "Unknown schedule: $EVENT_SCHEDULE" >&2
-                exit 1
-                ;;
-            esac
-          fi
-
-          echo "slot=$SLOT" >> "$GITHUB_OUTPUT"
-          echo "dry_run=$DRY_RUN" >> "$GITHUB_OUTPUT"
-          echo "Resolved Asia/Jakarta slot: $SLOT (dry_run=$DRY_RUN)"
+          scripts/resolve-publisher-target.sh
 
       - name: Mint GitHub OIDC token
         id: oidc
@@ -96,12 +77,25 @@ jobs:
         shell: bash
         env:
           OIDC_TOKEN: ${{ steps.oidc.outputs.token }}
-          SLOT: ${{ steps.slot.outputs.slot }}
-          DRY_RUN: ${{ steps.slot.outputs.dry_run }}
+          PUBLISH_DATE: ${{ steps.target.outputs.date }}
+          TIMEZONE: ${{ steps.target.outputs.timezone }}
+          ACCOUNT: ${{ steps.target.outputs.account }}
+          ACCOUNT_ID: ${{ steps.target.outputs.account_id }}
+          SLOT_TIME: ${{ steps.target.outputs.slot_time }}
+          MEDIA_TYPE: ${{ steps.target.outputs.media_type }}
+          DRY_RUN: ${{ steps.target.outputs.dry_run }}
         run: |
           set -euo pipefail
 
-          BODY="$(jq -nc --arg slot "$SLOT" --argjson dry_run "$DRY_RUN" '{slot:$slot,dry_run:$dry_run}')"
+          BODY="$(jq -nc \
+            --arg date "$PUBLISH_DATE" \
+            --arg timezone "$TIMEZONE" \
+            --arg account "$ACCOUNT" \
+            --arg account_id "$ACCOUNT_ID" \
+            --arg slot_time "$SLOT_TIME" \
+            --arg media_type "$MEDIA_TYPE" \
+            --argjson dry_run "$DRY_RUN" \
+            '{date:$date,timezone:$timezone,account:$account,account_id:$account_id,slot_time:$slot_time,media_type:$media_type,dry_run:$dry_run}')"
 
           curl --fail-with-body --silent --show-error \
             --max-time 150 \
