@@ -1,0 +1,13 @@
+name = "cubebox-wsm-cron"
+main = "src/worker.mjs"
+compatibility_date = "2026-10-01"
+# Five cron schedules, UTC. Each runs exactly one approved manifest slot.
+# Leave undeployed until signed Floot endpoint is verified in shadow mode
+# and the GitHub scheduled publisher is disabled at cutover.
+[triggers]
+crons = ["45 4 * * *", "30 5 * * *", "30 12 * * *", "15 13 * * 0", "45 13 * * *"]
+
+[vars]
+WSM_SHADOW_MODE = "true"
+# Set secret with: npx wrangler secret put WSM_CF_HMAC_SECRET
+# Never commit this value. Shadow mode MUST be explicitly set to false for cutover.
