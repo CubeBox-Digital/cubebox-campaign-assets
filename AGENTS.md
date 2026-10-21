@@ -24,6 +24,11 @@ CubeBox OS provides company-wide minimums. Project-specific instructions add con
 - **Resource discipline:** reason and design in chat first; give the model/mode and meaningful cost warning before substantial tool use; prefer one tightly scoped change, tests relevant to risk, no sub-agents or repeated broad regressions by default. Stop when accepted.
 - **Evidence and environment:** know DEV/SIT/PROD, work away from PROD when possible, do not invent state or test results, review diffs, protect secrets, preserve user content, and report actual PASS/FAIL plus residual risk.
 
+
+## Mandatory Decision Continuity Gate
+
+Before **material recommendations, code changes, handoffs, or consequential actions**, load the canonical [CubeBox OS Decision Continuity Gate](https://github.com/CubeBox-Digital/cubebox-os/blob/main/docs/decision-continuity-gate.md), in addition to every applicable company and project rule. Verify relevant LOCKED/ACCEPTED/IMPLEMENTED/REJECTED decisions and **actual existing code/tests/acceptance**. Do not re-ask settled questions, restart accepted work, or treat UNKNOWN as not implemented. Explain conflicts/new evidence and obtain owner approval before changing locked scope. Issue a concise evidence-backed gate receipt covering the policy version, project status, prior decisions, implementation, conflicts, relevant gates, validation and rollback. At PR time complete the mandatory receipt template. Reuse verified evidence within a session; scoped checks are mandatory, repeated full scans are not. Never treat an agent-written receipt or passing structural CI as proof of semantic truth. If governance or authorization is unavailable, stop consequential work.
+
 ## Project-specific requirements
 
 Read `README.md`, the manifest contract and affected scheduler workflow before changing publishing logic.
